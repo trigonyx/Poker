@@ -10,4 +10,4 @@ class Player:
         self.is_all_in = False
 
     def __str__(self):
-        return f"{self.name}: {self.money} points"
+        return f"{self.name}: {self.money}€"
