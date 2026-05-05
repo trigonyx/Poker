@@ -1,5 +1,4 @@
 from game import Game
-import os
 from helper import get_integer_input, get_str_input, clear
 
 clear()
@@ -11,7 +10,6 @@ game = Game(start_capital=start_capital, start_bet=start_bet)
 
 # Game Loop
 while True:
-    # ask for action (add player, start game, change settings, quit)
     print("POKER\n")
     print("Players:")
     for player in game.players:
@@ -19,7 +17,9 @@ while True:
 
     print()
 
-    inpt = get_str_input("Press enter to start, q to quit, or enter a string to add a user")
+    inpt = get_str_input(
+        "Press enter to start, q to quit, or enter a string to add a user"
+    )
 
     if inpt == "":
         game.start()
