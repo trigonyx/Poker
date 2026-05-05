@@ -34,7 +34,7 @@ class Game:
             raise RuntimeWarning("Game not started yet, cannot call!")
             return False
 
-        player = self.players[self.active_player_idx]
+        player = self.betting_players[self.active_player_idx]
 
         if self.to_meet > player.currently_betted:
             alert("You can't call, you have to either meet or fold", amount=2)
@@ -47,13 +47,13 @@ class Game:
             raise RuntimeWarning("Game not started yet, cannot meet!")
             return False
 
-        player = self.players[self.active_player_idx]
+        player = self.betting_players[self.active_player_idx]
 
         difference = self.to_meet - player.currently_betted
         if difference >= player.money:
 
             all_in = get_str_input("You are about to go all-in. Confirm [Y / N]")
-            if all_in.lower == "y":
+            if all_in.lower() == "y":
                 difference = player.money
                 player.is_all_in = True
 
@@ -63,6 +63,7 @@ class Game:
                     return False
                 
                 fold = get_str_input("Rather fold? [Y / N]")
+                alert(fold, fold.lower())
                 if fold.lower() == "y":
                     self._fold()
 
@@ -82,7 +83,7 @@ class Game:
             raise RuntimeWarning("Game not started yet, cannot raise!")
             return False
 
-        player = self.players[self.active_player_idx]
+        player = self.betting_players[self.active_player_idx]
 
         amount = get_integer_input("raise amount")
 
@@ -93,7 +94,10 @@ class Game:
             return False
 
         self.to_meet = new_meet
-        return self._meet(call_from_raise=True)
+        res = self._meet(call_from_raise=True)
+        if not res:
+            self.to_meet -= amount
+        return res
 
     def _fold(self) -> bool:
         if not self.has_started:
@@ -115,8 +119,15 @@ class Game:
 
         while True:
             clear()
-            print(self, "\n")
-            player = self.players[self.active_player_idx]
+            self.print_state()
+            
+            player = self.betting_players[self.active_player_idx]
+            
+            if player.is_all_in:
+                self.active_player_idx += 1
+                self.active_player_idx %= len(self.betting_players)
+                continue
+
             print(f"{player.name}'s turn")
             action = get_str_input("Action")
             
@@ -151,11 +162,10 @@ class Game:
         
         winner_name = get_str_input("Winner")
         
-        print(p.name for p in self.betting_players)
         for player in self.betting_players:
             if player.name == winner_name:
                 self.finish_round(winner=player)
-                break
+                return
 
         
         alert("Name not found in betting_players:", winner_name, amount=2)
@@ -170,5 +180,18 @@ class Game:
         for player in self.players:
             player.finish_round()
 
+    def print_state(self):
+        print("Players:")
+        for player in self.players:
+            money = str(player.money)
+            spaces = len(str(self.start_capital)) + 3 - len(money)
+            if player in self.betting_players:    
+                print(f"{player.name}: {money}€" + " " * spaces + f"Bet: {player.currently_betted}€")
+            else:
+                print(f"{player.name}: {money}€" + " " * spaces + f"Bet: {player.currently_betted}€ (folded)")
+        print(f"\nPot: {self.pot}€\n\n")
+
     def __str__(self):
         return "\n".join([str(player) for player in self.players])
+    
+    
