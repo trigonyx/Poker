@@ -63,7 +63,6 @@ class Game:
                     return False
 
                 fold = get_str_input("Rather fold? [Y / N]")
-                alert(fold, fold.lower())
                 if fold.lower() == "y":
                     self._fold()
 
@@ -77,7 +76,7 @@ class Game:
 
         return True
 
-    def _raise(self) -> bool:
+    def _raise(self, amount: int) -> bool:
 
         if not self.has_started:
             raise RuntimeWarning("Game not started yet, cannot raise!")
@@ -85,7 +84,8 @@ class Game:
 
         player = self.betting_players[self.active_player_idx]
 
-        amount = get_integer_input("raise amount")
+        if not amount:
+            amount = get_integer_input("raise amount")
 
         new_meet = self.to_meet + amount
 
@@ -102,7 +102,7 @@ class Game:
     def _fold(self) -> bool:
         if not self.has_started:
             raise RuntimeWarning("Game not started yet, cannot fold!")
-            return
+            return False
 
         self.betting_players.pop(self.active_player_idx)
         self.active_player_idx -= 1
@@ -124,6 +124,10 @@ class Game:
             player = self.betting_players[self.active_player_idx]
 
             if player.is_all_in:
+                if all(p.is_all_in for p in self.betting_players):
+                    print("All players are all-in or folded")
+                    self.selct_winner()
+                    break
                 self.active_player_idx += 1
                 self.active_player_idx %= len(self.betting_players)
                 continue
@@ -141,13 +145,16 @@ class Game:
                 break
 
     def handle_action(self, usr_inp: str):
+        if usr_inp.lower().startswith("raise") or usr_inp.startswith("r"):
+            num = ''.join(c for c in usr_inp if c.isdigit())
+            num = int(num) if num != "" else None
+            return self._raise(num)
+
         match usr_inp.lower():
             case "call" | "c":
                 return self._call()
             case "meet" | "m":
                 return self._meet()
-            case "raise" | "r":
-                return self._raise()
             case "fold" | "f":
                 return self._fold()
             case "end" | "e":
@@ -180,21 +187,20 @@ class Game:
 
     def print_state(self):
         print("Players:")
+        max_name_length = max(len(player.name) for player in self.players)
         for player in self.players:
+            spaces_after_name = max_name_length + 1 - len(player.name)
             money = str(player.money)
             spaces = len(str(self.start_capital)) + 3 - len(money)
-            if player in self.betting_players:
-                print(
-                    f"{player.name}: {money}€"
-                    + " " * spaces
-                    + f"Bet: {player.currently_betted}€"
-                )
-            else:
-                print(
-                    f"{player.name}: {money}€"
-                    + " " * spaces
-                    + f"Bet: {player.currently_betted}€ (folded)"
-                )
+            print(
+                f"{player.name}:"
+                + " " * spaces_after_name
+                + f"{money}€"
+                + " " * spaces
+                + f"Bet: {player.currently_betted}€"
+                + (" (all-in)" if player.is_all_in else "")
+                + (" (folded)" if player not in self.betting_players else "")
+            )
         print(f"\nPot: {self.pot}€\n\n")
 
     def __str__(self):
